@@ -1,0 +1,5 @@
+#only commit Aditi_fly_optic_lobe folder 
+
+temporal_filtering/
+.vscode/
+__pycache__/
