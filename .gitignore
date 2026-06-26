@@ -3,3 +3,9 @@
 temporal_filtering/
 .vscode/
 __pycache__/
+
+#remove CSV files 
+
+Aditi_fly_optic_lobe/central_column_connectivity.csv
+Aditi_fly_optic_lobe/offset_column_connectivity.csv
+
