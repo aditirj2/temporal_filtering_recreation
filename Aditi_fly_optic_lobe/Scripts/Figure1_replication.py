@@ -76,7 +76,7 @@ def calc_rf(FWHM_center, FWHM_surrnd, surrnd_fac, polarity):
     gaussian_surround = gaussian_field(FWHM_surrnd)
     gaussian_surround = gaussian_surround / np.max(gaussian_surround)
     rf = polarity * ( gaussian_center - (gaussian_surround * surrnd_fac) ) 
-    rf = rf[80:120, 80:120] #borst crops to 40 x 40 to zoom into field. Cropped as well 
+    rf = rf[80:121, 80:121] #borst crops to 40 x 40 to zoom into field. Cropped to 41 x 41 as need for rf response generation 
 
     return rf 
 
@@ -106,7 +106,7 @@ def low_pass(lp_tau, stim = STIM) :
 
 def high_pass(hp_tau, response): 
 
-    filtered = low_pass(hp_tau, response) #response - 
+    filtered = response - low_pass(hp_tau, response) 
 
     return filtered 
 
@@ -138,7 +138,7 @@ def calc_sr(lp_tau, hp_tau, polarity):
     if hp_tau == 0:
         final_filtered = low
     else: 
-        final_filtered = low - high_pass(hp_tau, low)
+        final_filtered = high_pass(hp_tau, low)
 
     final_filtered = normalize(final_filtered)   # from borst 
 
@@ -185,7 +185,7 @@ def plot_neuron(axes, neuron_name, FWHM_center, FWHM_surround,surround_fac, pola
 
 # Function that plots entire figure 
 
-def plot_figure(title):
+def plot_final_figure(title, output_dir):
 
     fig = plt.figure(figsize=(40, 40))
     subfigs = fig.subfigures(2, 2)
@@ -202,11 +202,13 @@ def plot_figure(title):
                    ha='center', va='center', 
                    fontsize=40)
     
-    plt.savefig('Aditi_fly_optic_lobe/Results/figure1.png', dpi=300, bbox_inches='tight') #in order to make sure figure saves properly dpi is resolution bbox is to make sure figure it not stretched / cropped 
+    plt.savefig(output_dir, dpi=300, bbox_inches='tight') #in order to make sure figure saves properly dpi is resolution bbox is to make sure figure it not stretched / cropped 
     plt.show()
 
 
 #final function 
-plot_figure("Figure one recreation")
 
+output_dir = 'Aditi_fly_optic_lobe/Results/figure1.png'
+title = "Figure one recreation"
+#plot_final_figure(title, output_dir)
 
