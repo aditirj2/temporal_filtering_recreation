@@ -141,3 +141,33 @@ create_multi_colM(output_dir_multicolM)
 
 #graph all different connectivity matrixes 
 
+
+def plot_figure2() : 
+
+    intracolM = np.load(output_dir_central) #intracolM
+    intercolM = np.load(output_dir_offset) #inter
+    multicolM = np.load(output_dir_multicolM) #multicolM 
+    output_dir = dir_name + "/Results"
+
+    arr = [intracolM, intercolM, multicolM] 
+    titles = ["intracolumn_connectivity", "intercolumn_connectivity", "overall_connectivity"]
+
+    for i in range(len(arr)) : 
+
+        plt.figure(figsize=(12, 12))
+        plt.imshow(arr[i], cmap='coolwarm', vmin=-10, vmax=10)
+
+        if i != 2 : 
+
+            plt.xticks(np.arange(65), C_TYPE,  rotation = 90, fontsize = 5)
+            plt.yticks(np.arange(65), C_TYPE, rotation = 0, fontsize = 5)
+        
+        plt.colorbar()
+        plt.title(f"{titles[i]}")
+       
+        final_output = output_dir + f"/{titles[i]}.png"
+        plt.savefig(final_output)
+        plt.show()
+
+    
+plot_figure2()
