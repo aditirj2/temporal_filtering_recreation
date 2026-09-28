@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import blindschleiche_py3 as bs
 import Medulla_Library as ml 
-from scipy.signal import chirp
 from scipy.optimize import minimize
 import time 
 
@@ -19,7 +18,7 @@ E_leak_lamina = -20 #mV higher potential what does this say? means closer to dep
 
 E_leak = np.zeros(325) + E_leak_all #all neurons leak is -50 
 for i in range(5) : 
-    E_leak[65*i+8:65*i+12] = E_leak_lamina 
+    E_leak[65*i+8:65*i+11] = E_leak_lamina 
 
 capac = 40 #pF
 temp_res = 10 #ms
@@ -50,7 +49,7 @@ output_dir = dir_name + "/circuits"
 multi_colM = np.load(output_dir + "/multi_colM_rec.npy") #loading multicolM matrix (325,325)
 c_type =  np.load(output_dir + "/c_type_rec.npy") #load ctype array (65,)
 mc_index = np.load(output_dir + "/mc_cell_index_rec.npy")
-
+cell_list= np.array(['L1','L2','L3','L4','L5','Mi1','Tm3','Mi4','Mi9','Tm1','Tm2','Tm4','Tm9'])
 
 def init_network(): #initialize signal, data, and split connectivity matrices 
 
@@ -155,7 +154,7 @@ def calc_model(z) :
     
     # accounts for Ca-buffering
         
-    model  = bs.lowpass(model,Ca_tau/deltat)
+    model  = bs.lowpass(model,50/temp_res) #50 is ca_tau 
     
     # shift backwards one time pointm but leaves last point
     
@@ -165,8 +164,8 @@ def calc_model(z) :
 
 def cost(model, data) :
 
-    num = (model - data)**2
-    denom = data**2
+    num =  np.sum((model - data)**2)
+    denom = np.sum(data**2)
     total_cost = num/denom
 
     return total_cost
@@ -243,6 +242,46 @@ def calc_z_init(z,init_option):  #taken directly from 5 col for reproducibility
         z=create_rand_params()
         
     return z
+
+
+def send_message(res,a,b):
+    
+    run_time = (b-a)/60.0
+    
+    print()
+    print('Optimization Success  :', res.success)
+    print('Last Value of cost fct:', format(res.fun,'.2f'))
+    print('Number of cost fct use:', res.nfev)
+    print('total run time        :', format(run_time, '.2f'), ' min')
+    print()
+
+def fit_params(z, init_option):  # final model?
+
+    global counter
+    counter = 0
+
+    a = time.time()
+
+    z_init = calc_z_init(z, init_option)
+    options = {'maxiter': max_iter * number_of_param}
+
+    res = minimize(calc_cost, z_init, method='L-BFGS-B', tol=1e-8, bounds=z_bounds, options=options)
+
+    z_final = res.x #parameters that minimizer ends up with 
+
+    b = time.time()
+
+    print("done!")
+
+    fitted_final_model = calc_model(z_final)
+    
+    return z_final, fitted_final_model
+
+z = create_rand_params()
+params, model = fit_params(z, 1)
+
+
+#plotting
 
 def plot_cost_array(cost):
     
@@ -367,128 +406,80 @@ def plot_model(data, model, label1 = 'data', label2 = 'model'):
         
         plt.pause(0.1)
 
-def plot_params(z,all_cells = 0,mytitle =''):
+
+plot_cost_array(cost_array[0:counter])
+plt.show()
+plot_model(data, model)
+plt.show()
+
+
+# def plot_params(z,all_cells = 0,mytitle =''):
+    # plt.figure(figsize=(7,11))
     
-    plt.figure(figsize=(7,11))
+    # fontsize_legend = 8
+    # xpos = -20
+    # mylw = 3
     
-    fontsize_legend = 8
-    xpos = -20
-    mylw = 3
-    
-    if all_cells == 1:
+    # if all_cells == 1:
         
-        plot_index = np.arange(nofcells)
-        plot_list  = ctype
+    #     plot_index = np.arange(nofcells)
+    #     plot_list  = ctype
         
-    else:
+    # else:
             
-        plot_index = cell_index
-        plot_list  = cell_list
+    #     plot_index = cell_index
+    #     plot_list  = cell_list
         
-    max_num = plot_index.shape[0]
+    # max_num = plot_index.shape[0]
     
-    my_cmap = plt.get_cmap("viridis")
+    # my_cmap = plt.get_cmap("viridis")
     
-    for i in range(2):
+    # for i in range(2):
     
-        plt.subplot(3,1,i+1)
+    #     plt.subplot(3,1,i+1)
         
-        plt.bar(np.arange(max_num),z[plot_index+i*65],color=my_cmap(np.arange(max_num)/(1.0*max_num)))
+    #     plt.bar(np.arange(max_num),z[plot_index+i*65],color=my_cmap(np.arange(max_num)/(1.0*max_num)))
         
-        if all_cells == 0:
+    #     if all_cells == 0:
             
-            plt.xticks(np.arange(max_num),plot_list)
+    #         plt.xticks(np.arange(max_num),plot_list)
             
-        else:
+    #     else:
             
-            plt.xticks(np.arange(max_num),plot_list,rotation='vertical',fontsize=6)    
+    #         plt.xticks(np.arange(max_num),plot_list,rotation='vertical',fontsize=6)    
         
-        if i == 0: 
+    #     if i == 0: 
             
-            plt.ylabel('input gain')
-            plt.title(mytitle)
+    #         plt.ylabel('input gain')
+    #         plt.title(mytitle)
             
-        if i == 1: plt.ylabel('output gain')
+    #     if i == 1: plt.ylabel('output gain')
         
-        plt.yscale('log')
-        plt.ylim(0.05,500)
+    #     plt.yscale('log')
+    #     plt.ylim(0.05,500)
     
-    plt.subplot(3,1,3)
+    # plt.subplot(3,1,3)
     
-    Ih_gmax  = z[130:135]
-    Ih_midv  = z[135]
-    Ih_slope = z[136]
-    tau_midv = z[137]
+    # Ih_gmax  = z[130:135]
+    # Ih_midv  = z[135]
+    # Ih_slope = z[136]
+    # tau_midv = z[137]
     
-    Vm       = np.arange(100)-100
-    Ih_ss    = 1.0/(1.0+np.exp((Ih_midv-Vm)*Ih_slope))
-    tau      = 1.5/(np.exp(-0.1*(Vm-tau_midv))+np.exp(+0.1*(Vm-tau_midv)))+0.1
+    # Vm       = np.arange(100)-100
+    # Ih_ss    = 1.0/(1.0+np.exp((Ih_midv-Vm)*Ih_slope))
+    # tau      = 1.5/(np.exp(-0.1*(Vm-tau_midv))+np.exp(+0.1*(Vm-tau_midv)))+0.1
     
-    plt.plot(Vm,Ih_ss,label = 'Ih Activation',linewidth=mylw)
-    plt.plot(Vm,tau,  label = 'Ih time constant [s]',linewidth=mylw)
-    plt.xlabel('membrane potential [mV]')
-    plt.legend(loc=1,frameon=False, fontsize = fontsize_legend)
+    # plt.plot(Vm,Ih_ss,label = 'Ih Activation',linewidth=mylw)
+    # plt.plot(Vm,tau,  label = 'Ih time constant [s]',linewidth=mylw)
+    # plt.xlabel('membrane potential [mV]')
+    # plt.legend(loc=1,frameon=False, fontsize = fontsize_legend)
     
-    plt.text(xpos,0.7,'Ih_midv  = ' +str(int(Ih_midv*100)/100.0),fontsize = fontsize_legend)
-    plt.text(xpos,0.6,'Ih_slope = ' +str(int(Ih_slope*100)/100.0),fontsize = fontsize_legend)
-    plt.text(xpos,0.5,'tau_midv = ' +str(int(tau_midv*100)/100.0),fontsize = fontsize_legend)
+    # plt.text(xpos,0.7,'Ih_midv  = ' +str(int(Ih_midv*100)/100.0),fontsize = fontsize_legend)
+    # plt.text(xpos,0.6,'Ih_slope = ' +str(int(Ih_slope*100)/100.0),fontsize = fontsize_legend)
+    # plt.text(xpos,0.5,'tau_midv = ' +str(int(tau_midv*100)/100.0),fontsize = fontsize_legend)
     
-    bs.setmyaxes(0.2,0.2,0.2,0.1)
-    plt.bar(np.arange(5),Ih_gmax)
-    plt.xticks(np.arange(5),['L1','L2','L3','L4','L5'],fontsize = fontsize_legend)
-    plt.yticks(np.arange(5)*20,np.arange(5)*20,fontsize = fontsize_legend)
-    plt.title('Ih_gmax',fontsize = fontsize_legend)
-
-def send_message(res,a,b):
-    
-    run_time = (b-a)/60.0
-    
-    print()
-    print('Optimization Success  :', res.success)
-    print('Last Value of cost fct:', format(res.fun,'.2f'))
-    print('Number of cost fct use:', res.nfev)
-    print('total run time        :', format(run_time, '.2f'), ' min')
-    print()
-
-def fit_params(z, init_option, plotit=1):  # final model?
-
-    z = calc_z_init(z, init_option)
-    model = calc_model(z)
-
-    global counter
-
-    a = time.time()
-    counter = 0
-    z_init = calc_z_init(z, init_option)
-    options = {'maxiter': max_iter * number_of_param}
-
-    res = minimize(calc_cost, z_init, method='L-BFGS-B', tol=1e-8, bounds=z_bounds, options=options)
-
-    z = res.x
-
-    b = time.time()
-
-    print("done!")
-
-    final_fitted_model = calc_model(z)
-    fitted_final_model = final_fitted_model
-
-    if plotit == 1:
-        # plot_cost_array(cost_array[0:counter])
-        # plot_model(data, calc_model(z))
-        # plot_params(z)
-        pass
-
-    return z, fitted_final_model
-
-
-
-
-
-
-
-
-
-
-
-
+    # bs.setmyaxes(0.2,0.2,0.2,0.1)
+    # plt.bar(np.arange(5),Ih_gmax)
+    # plt.xticks(np.arange(5),['L1','L2','L3','L4','L5'],fontsize = fontsize_legend)
+    # plt.yticks(np.arange(5)*20,np.arange(5)*20,fontsize = fontsize_legend)
+    # plt.title('Ih_gmax',fontsize = fontsize_legend)
