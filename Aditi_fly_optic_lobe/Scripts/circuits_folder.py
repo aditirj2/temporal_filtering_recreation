@@ -164,7 +164,9 @@ def plot_figure2() :
         
         plt.colorbar()
         plt.title(f"{titles[i]}")
-       
+        
+       if i == 2: 
+        
         final_output = output_dir + f"/{titles[i]}.png"
         plt.savefig(final_output)
         plt.show()

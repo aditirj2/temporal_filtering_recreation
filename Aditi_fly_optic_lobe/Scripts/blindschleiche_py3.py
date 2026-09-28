@@ -21,7 +21,7 @@ from matplotlib.colors import LightSource
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import csr_matrix
-import itertools
+#import itertools
 
 # --------------- GENERAl FUNCTIONS -----------------------------
 
